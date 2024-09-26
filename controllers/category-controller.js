@@ -35,7 +35,7 @@ catch(err){
 }
 }
 
-const getAllCategory=async (req,resp)=>{
+const getCategories=async (req,resp)=>{
       try{
           const categories=await Category.find();
           if(categories){
@@ -58,5 +58,9 @@ const getAllCategory=async (req,resp)=>{
       }
 }
 
+const check=async (req,resp)=>{
+    resp.json("yoo wakar");
+}
 
-module.exports={createCategory,getAllCategory};
+
+module.exports={createCategory,getCategories,check};
