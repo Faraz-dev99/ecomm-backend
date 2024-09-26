@@ -1,5 +1,5 @@
 const User = require('../models/user-model');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const Jwt = require('jsonwebtoken');
 const otpGenerator = require('otp-generator')
 const sendMail = require('../middleware/sendMail');
