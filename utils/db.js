@@ -2,7 +2,8 @@ const mongoose=require('mongoose');
 
 const connectdb=async ()=>{
     try{
-        await mongoose.connect('mongodb+srv://arbazuddin242830:un21g32Database@ecommcerce.mtotm.mongodb.net/ecomm?retryWrites=true&w=majority&appName=ecommcerce');
+        await mongoose.connect(process.env.DBHOST);
+        console.log("connted")
     }
     catch(err){
         console.log("connection failed");
