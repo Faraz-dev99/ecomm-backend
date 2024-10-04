@@ -254,7 +254,9 @@ exports.getAllProducts = async (req, resp) => {
 exports.getProductDetails=async (req,resp)=>{
     try{
         const id=req.params.id;
-        const product=await Product.findById(id);
+        const product=await Product.findById(id).populate({
+            path: 'attributes',
+        });
         if(!product){
            return resp.status(404).json({
                 success:false,
