@@ -59,6 +59,10 @@ const productSchema = new mongoose.Schema({
         enum: ['Draft', 'Published'],
         default: 'Draft'
     },
+    attributes:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'attributes',
+    }
 
 
 

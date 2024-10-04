@@ -58,9 +58,7 @@ const getCategories=async (req,resp)=>{
       }
 }
 
-const check=async (req,resp)=>{
-    resp.json("yoo wakar");
-}
 
 
-module.exports={createCategory,getCategories,check};
+
+module.exports={createCategory,getCategories};

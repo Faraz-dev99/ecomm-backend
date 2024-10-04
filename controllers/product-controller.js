@@ -1,4 +1,5 @@
 const Product = require('../models/product-model');
+const Attributes=require('../models/attributes-model')
 const User = require('../models/user-model');
 const path=require('path');
 const Category = require('../models/category-model');
@@ -42,7 +43,7 @@ exports.createProduct = async (req, resp, next) => {
         }
 
         const uploadedFile=await uploadfiles(files);
-        console.log("file: ",uploadedFile)
+        //console.log("file: ",uploadedFile)
         
 
         if (!categoryId) {
@@ -53,7 +54,7 @@ exports.createProduct = async (req, resp, next) => {
         }
 
 
-
+        
 
         const product = new Product({
             ...req.body,
@@ -83,7 +84,7 @@ exports.createProduct = async (req, resp, next) => {
 
 
 
-            console.log("udpate", updateseller)
+            //console.log("udpate", updateseller)
             resp.status(201).json({
                 success: true,
                 product
@@ -107,6 +108,118 @@ exports.createProduct = async (req, resp, next) => {
 
 }
 
+//product status change -- publish or draft product 
+
+exports.productStatus=async (req,resp)=>{
+    try{
+        const {status,productId}=req.body;
+        if(status==="Draft" || status==="Published"){
+        
+        const updateStatus=await Product.findByIdAndUpdate(
+            productId,
+            {
+                $set:{status:status},
+            },
+            {new:true}
+        )
+        if(!updateStatus){
+            return resp.status(301).json({
+                success:false,
+                message:"invalid id or field"
+            })
+        }
+
+        resp.status(300).json({
+            success:true,
+            updateStatus
+        })
+
+    }
+    else{
+        return resp.status(301).json({
+            success:false,
+            message:"invalid status"
+        })
+    }
+    }
+    catch(err){
+        resp.status(301).json({
+            success:false,
+            message:"something went wrong",
+            error:err.message
+        })
+    }
+}
+
+//add attributes
+
+exports.createAttributes=async (req,resp)=>{
+    try{
+        const {type,productId}=req.body;
+        let attributes={
+            type:type
+        }
+        const attributesData=new Attributes(attributes);
+        console.log("attributes",type);
+        console.log(attributesData)
+        if(!attributesData || !productId){
+           return resp.status(301).json({
+                success:false,
+                message:"missing properties",
+            })
+        }
+        attributesData.save();
+        
+
+        const productDetails=await Product.findByIdAndUpdate(
+            productId,
+            {
+                $set:{attributes:attributesData._id}
+            },
+            {new:true}
+        ).populate({
+            path:'attributes'
+        })
+        //console.log(productDetails)
+        if(!productDetails){
+            return resp.status(301).json({
+                success:false,
+                message:"invalid id or property"
+            })
+        }
+
+        resp.status(300).json({
+            success:true,
+            productDetails
+        })
+    }
+    catch(err){
+        resp.status(301).json({
+            success:false,
+            message:"somwthing went wrong",
+            error:err.message
+        })
+    }
+}
+
+
+//edit product
+
+exports.editProduct=async (req,resp)=>{
+    const {productId}=req.body;
+    const updates=req.body;
+    const product=await Product.findById(productId);
+
+    if(req.files){
+        const files= req.files.filter((file)=>file);
+        const upload =await Promise.all(
+            files.map((file => {
+                const publicId ="";
+                return uploadOnCloudnary(file,'Mern Practice/E com project(1)/images',publicId);
+            }))
+        )
+    }
+}
 
 //get all product
 exports.getAllProducts = async (req, resp) => {
@@ -161,6 +274,8 @@ exports.getProductDetails=async (req,resp)=>{
         })
     }
 }
+
+
 
 //search products
 
