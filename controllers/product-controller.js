@@ -13,7 +13,7 @@ exports.createProduct = async (req, resp, next) => {
     try {
 
 
-        const { category: _category } = req.body;
+        const { category: _category,sizes:_sizes } = req.body;
         let {color}=req.body;
         color=color.split(",");
         color=color.map((e)=>{
@@ -21,6 +21,8 @@ exports.createProduct = async (req, resp, next) => {
                 name:e
             }
         })
+        const sizes = _sizes ? JSON.parse(_sizes) : [];
+
         const categoryId = await Category.findById(_category);
         /* const cloudinary=await uploadOnCloudnary(req.file);
           console.log("link",cloudinary) */
@@ -58,6 +60,7 @@ exports.createProduct = async (req, resp, next) => {
 
         const product = new Product({
             ...req.body,
+            sizes:sizes,
             category: _category,
             color,
             images:uploadedFile
@@ -316,3 +319,60 @@ exports.getSearchedProducts = async (req, resp) => {
     }
 }
 
+
+//get seller products
+
+exports.getSellerProducts=async (req,resp)=>{
+    try{
+        const id=req.user._id;
+        console.log(id)
+        const products=await Product.find({
+            seller:id
+        }).populate("category");
+        if(!products || products.length===0){
+            return resp.status(300).json({
+                success:false,
+                message:"product not found"
+            })
+        }
+        console.log(products)
+        return resp.status(300).json({
+            success:true,
+            data:products
+        });
+    }
+    catch(err){
+        resp.status(500).json({
+            success:false,
+            message:"something went wrong",
+            error:err.message
+        })
+    }
+}
+
+
+//delete Product 
+exports.deleteProduct=async (req,resp)=>{
+    try{
+        const id=req.params.id;
+        const response=await Product.findByIdAndDelete(id);
+        if(!response){
+            return resp.status(301).json({
+                success:false,
+                message:"failed to delete producdt"
+            })
+        }
+        return resp.status(300).json({
+            success:true,
+            response,
+            message:"product delete successfully"
+        })
+    }
+    catch(err){
+        return resp.status(301).json({
+            success:false,
+            message:"something went wrong",
+            error:err.message
+        })
+    }
+}

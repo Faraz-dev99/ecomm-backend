@@ -14,6 +14,14 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: [true, "plese enter product brand"]
     },
+    sizes:[{
+        size:{
+            type:String
+        },
+        stock:{
+            type:Number
+        }
+    }],
     price: {
         type: Number,
         required: [true, "plese enter product price"],
@@ -62,6 +70,10 @@ const productSchema = new mongoose.Schema({
     attributes:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'attributes',
+    },
+    seller:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'users'
     }
 
 
