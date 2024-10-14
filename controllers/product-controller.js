@@ -1,52 +1,141 @@
 const Product = require('../models/product-model');
-const Attributes=require('../models/attributes-model')
+const Attributes = require('../models/attributes-model')
 const User = require('../models/user-model');
-const path=require('path');
+const path = require('path');
 const Category = require('../models/category-model');
-const { uploadOnCloudnary } = require('../utils/cloudinary')
-const fs=require('fs');
+const { uploadOnCloudnary, destroyImage } = require('../utils/cloudinary')
+const fs = require('fs');
+
+
+//edit product
+
+exports.updateProduct = async (req, resp) => {
+    try {
+        const { productId } = req.body;
+        const updates = req.body;
+        console.log(req.body)
+        
+
+        const product = await Product.findById(productId);
+        if (!product) {
+            return resp.status(404).json({
+                success: false,
+                message: "product not found"
+            })
+        }
+
+
+
+
+        /*  if(updates['color']){
+          updates['color'].split(',');
+          updates['color'].map((e)=>{
+              return {
+                  name:e
+              }
+          })
+         } */
+
+        if (req.files && req.files.length > 0) {
+            const files = req.files.filter((file) => file);
+        if (files.length < 4) {
+            return resp.status(404).json({
+                success: false,
+                message: "missing files at least 4 image file required",
+            })
+        }
+            console.log("enter")
+            const oldImagePublicIds = product.images.map(image => image?.public_id).filter(id => id);
+            const uploadfiles = async (files) => {
+                const upload = await Promise.all(
+                    files.map((file => {
+                        const publicId = file.fieldname + '-' + Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname)
+                        return uploadOnCloudnary(file, 'Mern Practice/E com project(1)/images', publicId);
+                    }))
+                )
+                files.forEach(file => fs.unlinkSync(file.path));
+                return upload.map((file) => ({ public_id: file.public_id, secure_url: file.secure_url }));
+            }
+            const uploadedFiles = await uploadfiles(files);
+            product.images = uploadedFiles;
+            // Destroy old images if they exist
+             // Destroy old images if they exist
+             if (oldImagePublicIds.length) {
+                await Promise.all(oldImagePublicIds.map(id => destroyImage(id)));
+            }
+
+        }
+
+        for (const key of Object.keys(updates)) {
+            if (key !== "images") {  // Skip images field since it's handled separately
+                if (key === "sizes" || key==="color") {
+                    product[key] = JSON.parse(updates[key]);  // Parse JSON string for sizes
+                } else {
+                    product[key] = updates[key];  // Assign other update fields
+                }
+            }
+        }
+        
+
+        await product.save();
+
+        const updatedProduct=await Product.findById(productId).populate("category").populate({
+            path:"seller",
+            select:"-password"
+        }).populate("attributes")
+        
+        resp.status(300).json({
+            success:true,
+            updatedProduct
+        })
+
+
+    }
+    catch (err) {
+        resp.status(500).json({
+            success: false,
+            message: "something went wrong",
+            error: err.message
+        });
+    }
+}
 
 
 //create product-- 'Admin'
 
-exports.createProduct = async (req, resp, next) => {
+exports.createProduct = async (req, resp) => {
     try {
 
 
-        const { category: _category,sizes:_sizes } = req.body;
-        let {color}=req.body;
-        color=color.split(",");
-        color=color.map((e)=>{
-            return {
-                name:e
-            }
-        })
+        const { category: _category, sizes: _sizes,color:_color } = req.body;
+        
         const sizes = _sizes ? JSON.parse(_sizes) : [];
+        const color=_color?JSON.parse(_color):[];
 
         const categoryId = await Category.findById(_category);
         /* const cloudinary=await uploadOnCloudnary(req.file);
           console.log("link",cloudinary) */
-        const files = req.files.filter((file)=>file);
-        if(files.length<4){
+        const files = req.files.filter((file) => file);
+        if (files.length < 4) {
             return resp.status(404).json({
-                success:false,
-                message:"missing files at least 4 image file required",
+                success: false,
+                message: "missing files at least 4 image file required",
             })
         }
         const uploadfiles = async (files) => {
-            const upload =await Promise.all(
+            const upload = await Promise.all(
                 files.map((file => {
-                    const publicId =file.fieldname + '-' + Date.now() + '-' + Math.round(Math.random() * 1E9)+path.extname(file.originalname)
-                    return uploadOnCloudnary(file,'Mern Practice/E com project(1)/images',publicId);
+                    const publicId = file.fieldname + '-' + Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname)
+                    return uploadOnCloudnary(file, 'Mern Practice/E com project(1)/images', publicId);
                 }))
             )
             files.forEach(file => fs.unlinkSync(file.path));
-            return upload.map((file)=>({public_id:file.public_id,secure_url:file.secure_url}));
+            return upload.map((file) => ({ public_id: file.public_id, secure_url: file.secure_url }));
         }
 
-        const uploadedFile=await uploadfiles(files);
+        const uploadedFile = await uploadfiles(files);
         //console.log("file: ",uploadedFile)
-        
+
 
         if (!categoryId) {
             return resp.status(301).json({
@@ -56,14 +145,14 @@ exports.createProduct = async (req, resp, next) => {
         }
 
 
-        
+
 
         const product = new Product({
             ...req.body,
-            sizes:sizes,
+            sizes: sizes,
             category: _category,
-            color,
-            images:uploadedFile
+            color: color,
+            images: uploadedFile
         });
 
 
@@ -101,7 +190,7 @@ exports.createProduct = async (req, resp, next) => {
         }
     }
     catch (err) {
-       // files.forEach(file => fs.unlinkSync(file.path));
+        // files.forEach(file => fs.unlinkSync(file.path));
         resp.status(500).json({
             success: false,
             message: "something went wrong",
@@ -113,94 +202,94 @@ exports.createProduct = async (req, resp, next) => {
 
 //product status change -- publish or draft product 
 
-exports.productStatus=async (req,resp)=>{
-    try{
-        const {status,productId}=req.body;
-        if(status==="Draft" || status==="Published"){
-        
-        const updateStatus=await Product.findByIdAndUpdate(
-            productId,
-            {
-                $set:{status:status},
-            },
-            {new:true}
-        )
-        if(!updateStatus){
+exports.productStatus = async (req, resp) => {
+    try {
+        const { status, productId } = req.body;
+        if (status === "Draft" || status === "Published") {
+
+            const updateStatus = await Product.findByIdAndUpdate(
+                productId,
+                {
+                    $set: { status: status },
+                },
+                { new: true }
+            )
+            if (!updateStatus) {
+                return resp.status(301).json({
+                    success: false,
+                    message: "invalid id or field"
+                })
+            }
+
+            resp.status(300).json({
+                success: true,
+                updateStatus
+            })
+
+        }
+        else {
             return resp.status(301).json({
-                success:false,
-                message:"invalid id or field"
+                success: false,
+                message: "invalid status"
             })
         }
-
-        resp.status(300).json({
-            success:true,
-            updateStatus
-        })
-
     }
-    else{
-        return resp.status(301).json({
-            success:false,
-            message:"invalid status"
-        })
-    }
-    }
-    catch(err){
+    catch (err) {
         resp.status(301).json({
-            success:false,
-            message:"something went wrong",
-            error:err.message
+            success: false,
+            message: "something went wrong",
+            error: err.message
         })
     }
 }
 
 //add attributes
 
-exports.createAttributes=async (req,resp)=>{
-    try{
-        const {type,productId}=req.body;
-        let attributes={
-            type:type
+exports.createAttributes = async (req, resp) => {
+    try {
+        const { type, productId } = req.body;
+        let attributes = {
+            type: type
         }
-        const attributesData=new Attributes(attributes);
-        console.log("attributes",type);
+        const attributesData = new Attributes(attributes);
+        console.log("attributes", type);
         console.log(attributesData)
-        if(!attributesData || !productId){
-           return resp.status(301).json({
-                success:false,
-                message:"missing properties",
+        if (!attributesData || !productId) {
+            return resp.status(301).json({
+                success: false,
+                message: "missing properties",
             })
         }
         attributesData.save();
-        
 
-        const productDetails=await Product.findByIdAndUpdate(
+
+        const productDetails = await Product.findByIdAndUpdate(
             productId,
             {
-                $set:{attributes:attributesData._id}
+                $set: { attributes: attributesData._id }
             },
-            {new:true}
+            { new: true }
         ).populate({
-            path:'attributes'
+            path: 'attributes'
         })
         //console.log(productDetails)
-        if(!productDetails){
+        if (!productDetails) {
             return resp.status(301).json({
-                success:false,
-                message:"invalid id or property"
+                success: false,
+                message: "invalid id or property"
             })
         }
 
         resp.status(300).json({
-            success:true,
+            success: true,
             productDetails
         })
     }
-    catch(err){
+    catch (err) {
         resp.status(301).json({
-            success:false,
-            message:"somwthing went wrong",
-            error:err.message
+            success: false,
+            message: "somwthing went wrong",
+            error: err.message
         })
     }
 }
@@ -208,17 +297,17 @@ exports.createAttributes=async (req,resp)=>{
 
 //edit product
 
-exports.editProduct=async (req,resp)=>{
-    const {productId}=req.body;
-    const updates=req.body;
-    const product=await Product.findById(productId);
+exports.editProduct = async (req, resp) => {
+    const { productId } = req.body;
+    const updates = req.body;
+    const product = await Product.findById(productId);
 
-    if(req.files){
-        const files= req.files.filter((file)=>file);
-        const upload =await Promise.all(
+    if (req.files) {
+        const files = req.files.filter((file) => file);
+        const upload = await Promise.all(
             files.map((file => {
-                const publicId ="";
-                return uploadOnCloudnary(file,'Mern Practice/E com project(1)/images',publicId);
+                const publicId = "";
+                return uploadOnCloudnary(file, 'Mern Practice/E com project(1)/images', publicId);
             }))
         )
     }
@@ -254,28 +343,31 @@ exports.getAllProducts = async (req, resp) => {
 
 //get product details
 
-exports.getProductDetails=async (req,resp)=>{
-    try{
-        const id=req.params.id;
-        const product=await Product.findById(id).populate({
+exports.getProductDetails = async (req, resp) => {
+    try {
+        const id = req.params.id;
+        const product = await Product.findById(id).populate({
             path: 'attributes',
+        }).populate({
+            path: 'seller',
+            select: '-password'
         });
-        if(!product){
-           return resp.status(404).json({
-                success:false,
-                message:"product not found"
+        if (!product) {
+            return resp.status(404).json({
+                success: false,
+                message: "product not found"
             })
         }
         resp.status(200).json({
-            success:true,
+            success: true,
             product
         })
     }
-    catch(err){
+    catch (err) {
         resp.status(301).json({
-            success:false,
-            message:"something went wrong",
-            error:err.message
+            success: false,
+            message: "something went wrong",
+            error: err.message
         })
     }
 }
@@ -322,57 +414,57 @@ exports.getSearchedProducts = async (req, resp) => {
 
 //get seller products
 
-exports.getSellerProducts=async (req,resp)=>{
-    try{
-        const id=req.user._id;
+exports.getSellerProducts = async (req, resp) => {
+    try {
+        const id = req.user._id;
         console.log(id)
-        const products=await Product.find({
-            seller:id
+        const products = await Product.find({
+            seller: id
         }).populate("category");
-        if(!products || products.length===0){
+        if (!products || products.length === 0) {
             return resp.status(300).json({
-                success:false,
-                message:"product not found"
+                success: false,
+                message: "product not found"
             })
         }
         console.log(products)
         return resp.status(300).json({
-            success:true,
-            data:products
+            success: true,
+            data: products
         });
     }
-    catch(err){
+    catch (err) {
         resp.status(500).json({
-            success:false,
-            message:"something went wrong",
-            error:err.message
+            success: false,
+            message: "something went wrong",
+            error: err.message
         })
     }
 }
 
 
 //delete Product 
-exports.deleteProduct=async (req,resp)=>{
-    try{
-        const id=req.params.id;
-        const response=await Product.findByIdAndDelete(id);
-        if(!response){
+exports.deleteProduct = async (req, resp) => {
+    try {
+        const id = req.params.id;
+        const response = await Product.findByIdAndDelete(id);
+        if (!response) {
             return resp.status(301).json({
-                success:false,
-                message:"failed to delete producdt"
+                success: false,
+                message: "failed to delete producdt"
             })
         }
         return resp.status(300).json({
-            success:true,
+            success: true,
             response,
-            message:"product delete successfully"
+            message: "product delete successfully"
         })
     }
-    catch(err){
+    catch (err) {
         return resp.status(301).json({
-            success:false,
-            message:"something went wrong",
-            error:err.message
+            success: false,
+            message: "something went wrong",
+            error: err.message
         })
     }
 }

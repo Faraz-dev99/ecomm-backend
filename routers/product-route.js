@@ -1,5 +1,5 @@
 const express=require('express');
-const {getAllProducts,createProduct, getSearchedProducts,getProductDetails, createAttributes, productStatus, getSellerProducts, deleteProduct}=require('../controllers/product-controller');
+const {getAllProducts,createProduct, getSearchedProducts,getProductDetails, createAttributes, productStatus, getSellerProducts, deleteProduct, updateProduct}=require('../controllers/product-controller');
 const {authorization, isSeller, isAdmin, isAdminOrSeller}=require('../middleware/auth');
 const { createCategory, getCategories} = require('../controllers/category-controller');
 const {upload}=require('../middleware/multerUpload')
@@ -10,6 +10,7 @@ router.get('/getProducts',getAllProducts);
 router.post('/new',authorization,isAdminOrSeller,upload.array('images'),createProduct);
 router.get('/details/:id',getProductDetails);
 router.post('/deleteProduct/:id',authorization,isAdminOrSeller,deleteProduct);
+router.post('/updateProduct',authorization,isAdminOrSeller,upload.array('images'),updateProduct);
 
 
 //attributes

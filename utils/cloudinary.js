@@ -29,3 +29,11 @@ exports.uploadOnCloudnary=async (localfile,folderpath,publicId)=>{
     }
 }
 
+exports.destroyImage = async (publicId) => {
+    try {
+        await cloudinary.uploader.destroy(publicId);
+    } catch (err) {
+        console.error(`Failed to delete image with public_id: ${publicId}`, err);
+    }
+};
+
