@@ -1,5 +1,5 @@
 const express=require('express');
-const {getAllProducts,createProduct, getSearchedProducts,getProductDetails, createAttributes, productStatus, getSellerProducts, deleteProduct, updateProduct}=require('../controllers/product-controller');
+const {getAllProducts,createProduct, getSearchedProducts,getProductDetails, createAttributes, productStatus, getSellerProducts, deleteProduct, updateProduct, editAttribute}=require('../controllers/product-controller');
 const {authorization, isSeller, isAdmin, isAdminOrSeller}=require('../middleware/auth');
 const { createCategory, getCategories} = require('../controllers/category-controller');
 const {upload}=require('../middleware/multerUpload')
@@ -11,6 +11,7 @@ router.post('/new',authorization,isAdminOrSeller,upload.array('images'),createPr
 router.get('/details/:id',getProductDetails);
 router.post('/deleteProduct/:id',authorization,isAdminOrSeller,deleteProduct);
 router.post('/updateProduct',authorization,isAdminOrSeller,upload.array('images'),updateProduct);
+router.post('/editAttributes',authorization,isAdminOrSeller,editAttribute)
 
 
 //attributes
@@ -26,7 +27,7 @@ router.post('/productStatus',authorization,isAdminOrSeller,productStatus)
 
 router.post('/createCategory',authorization,isAdminOrSeller,createCategory);
 router.get('/getCategories',authorization,isAdminOrSeller,getCategories);
-router.get('/searchProduct/:key',authorization,getSearchedProducts);
+router.get('/searchProduct/:key',getSearchedProducts);
 
 
 module.exports=router;

@@ -7,6 +7,41 @@ const { uploadOnCloudnary, destroyImage } = require('../utils/cloudinary')
 const fs = require('fs');
 
 
+
+//edit attribute
+exports.editAttribute=async (req,resp)=>{
+    try{
+        const {attributeId,type}=req.body;
+        
+        const attribute=await Attributes.findById(attributeId);
+        if(!attribute){
+            return resp.status(301).json({
+                success:false,
+                message:"attribute not found"
+            })
+        }
+        attribute.type=type;
+        await attribute.save();
+
+        resp.status(300).json({
+            success:true,
+            attribute
+        })
+
+        
+        
+    }
+    catch(err){
+        resp.status(301).json({
+            success:false,
+            message:"something went wrong",
+            error:err.message
+        })
+    }
+}
+
+
+
 //edit product
 
 exports.updateProduct = async (req, resp) => {
@@ -295,23 +330,9 @@ exports.createAttributes = async (req, resp) => {
 }
 
 
-//edit product
 
-exports.editProduct = async (req, resp) => {
-    const { productId } = req.body;
-    const updates = req.body;
-    const product = await Product.findById(productId);
 
-    if (req.files) {
-        const files = req.files.filter((file) => file);
-        const upload = await Promise.all(
-            files.map((file => {
-                const publicId = "";
-                return uploadOnCloudnary(file, 'Mern Practice/E com project(1)/images', publicId);
-            }))
-        )
-    }
-}
+
 
 //get all product
 exports.getAllProducts = async (req, resp) => {
@@ -374,7 +395,7 @@ exports.getProductDetails = async (req, resp) => {
 
 
 
-//search products
+/* //search products without category(seprete collection reference)
 
 exports.getSearchedProducts = async (req, resp) => {
     try {
@@ -410,6 +431,58 @@ exports.getSearchedProducts = async (req, resp) => {
         })
     }
 }
+ */
+
+//search product with category(separete collection refrence)
+exports.getSearchedProducts = async (req, resp) => {
+    try {
+        const key = req.params.key;
+
+        const findProduct = await Product.aggregate([
+            {
+                $lookup: {
+                    from: 'categories', // Name of the Category collection
+                    localField: 'category', // Field in Product referencing Category
+                    foreignField: '_id', // Field in Category model
+                    as: 'categoryDetails' // Alias for joined data
+                }
+            },
+            {
+                $unwind: {
+                    path: "$categoryDetails",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $match: {
+                    $or: [
+                        { name: { $regex: key, $options: "i" } },
+                        { brand: { $regex: key, $options: "i" } },
+                        { 'categoryDetails.name': { $regex: key, $options: "i" } } // Match category name
+                    ]
+                }
+            }
+        ]);
+
+        if (findProduct.length === 0) {
+            return resp.status(404).json({
+                message: "product not found"
+            });
+        }
+
+        return resp.status(200).json({
+            success: true,
+            products: findProduct,
+            message: "product found"
+        });
+    } catch (err) {
+        return resp.status(500).json({
+            success: false,
+            message: "something went wrong",
+            error: err.message
+        });
+    }
+};
 
 
 //get seller products
@@ -447,13 +520,24 @@ exports.getSellerProducts = async (req, resp) => {
 exports.deleteProduct = async (req, resp) => {
     try {
         const id = req.params.id;
-        const response = await Product.findByIdAndDelete(id);
+        const response = await Product.findById(id);
         if (!response) {
             return resp.status(301).json({
                 success: false,
                 message: "failed to delete producdt"
             })
         }
+        /* if(response.attributes?.type.length<1){
+            const attributeId=response.attributes._id;
+            const deleteAttribute=await Attributes.findByIdAndDelete(attributeId);
+            if(!deleteAttribute){
+                return resp.status(301).json({
+                    success:false,
+                    message:"failded to delete attributes of this product"
+                })
+            }
+        } */
+        await Product.findByIdAndDelete(id);
         return resp.status(300).json({
             success: true,
             response,
