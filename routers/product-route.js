@@ -26,7 +26,7 @@ router.post('/productStatus',authorization,isAdminOrSeller,productStatus)
 //category
 
 router.post('/createCategory',authorization,isAdminOrSeller,createCategory);
-router.get('/getCategories',authorization,isAdminOrSeller,getCategories);
+router.get('/getCategories',getCategories);
 router.get('/searchProduct/:key',getSearchedProducts);
 
 
