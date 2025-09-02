@@ -24,7 +24,15 @@ const userSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'products'
         },
-    ]
+    ],
+    profilePicture: {
+        public_id: {
+            type: String,
+        },
+        secure_url: {
+            type: String,
+        }
+    }
 
 })
 
