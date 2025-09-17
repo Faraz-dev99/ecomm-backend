@@ -33,10 +33,10 @@ const productSchema = new mongoose.Schema({
             required: true
         }
     }],
-    ratings: {
-        type: Number,
-        default: 0
-    },
+    reviews:[ {
+        type: mongoose.Schema.Types.ObjectId,
+        ref:'reviews'
+    }],
     images: [{
         public_id: {
             type: String,
@@ -57,10 +57,6 @@ const productSchema = new mongoose.Schema({
         required: [true, "please enter product stock"],
         maxLength: [4, "stock cannot exceed 4 characters"],
         default: 1
-    },
-    numOfReviews: {
-        type: Number,
-        default: 0
     },
     status: {
         type: String,

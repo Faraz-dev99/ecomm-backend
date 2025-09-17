@@ -5,6 +5,8 @@ const authrouter=require('./routers/auth-route')
 const productRouter=require('./routers/product-route')
 const adminRouter=require('./routers/admin_route')
 const userRouter=require('./routers/user-route');
+const orderRouter=require('./routers/order-route')
+const reviewRouter=require('./routers/review-route')
 const app=express();
 const connectdb=require('./utils/db')
 
@@ -18,6 +20,8 @@ app.use('/api/auth',authrouter)
 app.use('/api/product',productRouter);
 app.use('/api/admin',adminRouter);
 app.use('/api/user',userRouter);
+app.use('/api/order',orderRouter)
+app.use('/api/review',reviewRouter)
 
 
 
