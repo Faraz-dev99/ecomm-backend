@@ -336,31 +336,53 @@ exports.createAttributes = async (req, resp) => {
 
 //get all product
 exports.getAllProducts = async (req, resp) => {
-    try {
-        const products = await Product.find();
+  try {
+    let products = await Product.find()
+      .populate({
+        path: "reviews",
+        populate: { path: "user", select: "username profilePicture" }
+      });
 
-        if (products) {
-            resp.status(200).json({
-                success: true,
-                products
-            })
-        }
-        else {
-            resp.status(200).json({
-                success: false,
-                message: "something went wrong"
-            })
-        }
-    }
-    catch (err) {
-        resp.status(200).json({
-            success: false,
-            message: "something went wrong",
-            error: err.message
-        })
+    if (!products || products.length === 0) {
+      return resp.status(200).json({
+        success: false,
+        message: "No products found"
+      });
     }
 
-}
+    // add computed rating stats for each product
+    products = products.map((product) => {
+      const reviews = product.reviews || [];
+      const totalReviews = reviews.length;
+
+      const averageRating =
+        totalReviews > 0
+          ? (
+              reviews.reduce((acc, r) => acc + Number(r.rating || 0), 0) /
+              totalReviews
+            ).toFixed(1)
+          : 0;
+
+      return {
+        ...product.toObject(),
+        averageRating: Number(averageRating),
+        totalReviews,
+      };
+    });
+
+    resp.status(200).json({
+      success: true,
+      products,
+    });
+  } catch (err) {
+    resp.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: err.message,
+    });
+  }
+};
+
 
 //get product details
 

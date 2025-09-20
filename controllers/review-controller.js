@@ -44,7 +44,7 @@ exports.createReview = async (req, res) => {
   }
 };
 
-// ✅ Get reviews of a product (with overall rating)
+//Get reviews of a product (with overall rating)
 exports.getProductReviews = async (req, res) => {
   try {
     const { productId } = req.params; // assuming GET with params
@@ -59,7 +59,7 @@ exports.getProductReviews = async (req, res) => {
 
      const reviews = await Review.find({ product: productId }).populate("user", "username profilePicture");
 
-    // ✅ calculate stats
+    // calculate stats
     const totalReviews = reviews.length;
     const averageRating =
   totalReviews > 0
